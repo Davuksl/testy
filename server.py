@@ -1,4 +1,5 @@
 from aiohttp import web
+import os
 
 async def websocket_handler(request):
     ws = web.WebSocketResponse()
