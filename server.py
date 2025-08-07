@@ -1,21 +1,20 @@
-import socket
-import os
+from aiohttp import web
 
-HOST = '0.0.0.0'
-PORT = int(os.environ.get('PORT', 12345))  # получаем порт от Render, иначе fallback на 12345
+async def websocket_handler(request):
+    ws = web.WebSocketResponse()
+    await ws.prepare(request)
 
-with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-    s.bind((HOST, PORT))
-    s.listen()
+    async for msg in ws:
+        if msg.type == web.WSMsgType.TEXT:
+            # Эхо обратно
+            await ws.send_str(msg.data)
+        elif msg.type == web.WSMsgType.ERROR:
+            print('ws connection closed with exception %s' % ws.exception())
 
-    print(f"Listening on {HOST}:{PORT}...")
+    return ws
 
-    while True:
-        conn, addr = s.accept()
-        print(f"Connected by {addr}")
-        with conn:
-            while True:
-                data = conn.recv(1024)
-                if not data:
-                    break
-                print("<<<", data.decode())
+app = web.Application()
+app.add_routes([web.get('/', websocket_handler)])
+
+if __name__ == '__main__':
+    web.run_app(app, port=int(os.environ.get('PORT', 8080)))
